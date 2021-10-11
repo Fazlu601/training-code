@@ -1,52 +1,136 @@
+<?php
+//LOGIKA CRUD PHP-DASAR
 
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Belajar1</title>
+//Koneksi ke Database
+$conn =  mysqli_connect("localhost","root","","akademik");
+//Ambil data dari tabel dosen / query data dosen
 
-	<style type="text/css">
-		*{
-			margin: 15px;
-			padding: 10px;
-			border: 2px solid red;
-		}
+//Menampilkan index
+function query($query) {
+    //Deklarasikan $conn menjadi variabel global
+    global $conn;
+    //Gunakan function myqli_query untuk mengambil isi data dari database
+    $result = mysqli_query($conn, $query);
+    //Siapkan sebuah array sebagai wadah dari data
+    $rows = [];
+    //Lakukan perulangan while untuk mengambil data 1 persatu hingga menjadi suatu array associative
+    while ( $row = mysqli_fetch_assoc($result) ) {
+        //Masukan keseluruhan variabel $row ke dalam array yang sebelumnya disiapkan
+        $rows[] = $row;
+    }
+    return $rows;
+}
 
-		html{
-			margin: 0;
-			padding: 0;
-		}
+//Input / Tambah data lewat elemen form html
+function tambah($data) {
+    global $conn;
+    //Ambil data dari tiap elemen pada form
+    $nim = htmlspecialchars($data["nim"]);
+    $nama = htmlspecialchars($data["nama"]);
+    $email = htmlspecialchars($data["email"]);
+    $kelas = htmlspecialchars($data["kelas"]);
 
-		body{
-			max-width: 600px;
-			margin: 30px auto;
-			font-family: sans-serif;
-			color: #333;
-		}
+    //Upload gambar
+    $foto = upload();
+    if ( !$foto ) {
+        return false;
+    }
 
-		.warna{
-			background-color: gold;
-		}
-	</style>
+    //Query insert data
+    $query = "INSERT INTO siswa 
+                VALUES
+                ('$nim','$nama','$email','$kelas','$foto')
+                ";
+mysqli_query($conn, $query);
+    //Kembalikan perubahan baris
+    return mysqli_affected_rows($conn);
+}
 
-<body>
-	<h1 id="judul">Hello World</h1>
-	<div class="container">
-		<section id="a">
-			<p class="p1">Halaman 1</p>
-			<a href="../User2/Belajar2">Ke website jadi</a>
-			<p class="p2">Halaman 2</p>
-			<p class=" p3">Halaman 3</p>
-		</section>
-		<section id="b">
-			<p>Sub judul</p>
-			<ul>
-				<li>item 1</li>
-				<li>item 2</li>
-				<li>item 3</li>
-				<li>item 4</li>
-			</ul>
-		</section>
-	</div>
-	<script src="../Admin/bermain.js"></script>
-</body>
-</html>
+//Upload data dengan tipe file/gambar
+function upload() {
+    //Ambil data pada variabel $_FILES dan representasikan menjadi array baru
+    $namaFile = $_FILES["foto"]["name"];
+    $ukuranFile = $_FILES["foto"]["size"];
+    $error = $_FILES["foto"]["error"];
+    $tmpName = $_FILES["foto"]["tmp_name"];
+
+    //Cek apakah tidak ada gambar yang diupload
+    if ( $error === 4 ) {
+        echo "<script>
+                    alert('Foto harus diinput terlebih dahulu!');
+                </script>";
+            return false;
+    }
+
+    //Cek apakah yang diupload hanya gambar
+    $ekstensiGambarValid = ['jpg','jpeg','png'];
+    $ekstensiGambar = explode('.', $namaFile);
+    $ekstensiGambar = strtolower(end($ekstensiGambar));
+
+    if( !in_array($ekstensiGambar, $ekstensiGambarValid) ){
+        echo "<script>
+        alert('Yang anda upload bukan gambar!');
+    </script>";
+    return false;
+    }
+
+    //Cek jika ukuran terlalu besar
+    if ( $ukuranFile > 1000000 ){
+        echo "<script>
+        alert('Ukuran gambar terlalu besar!');
+    </script>";
+    return false;
+}
+    //Lolos pengecekan gambar, siap diupload
+    //Generete nama gambar baru
+    $namaFileBAru = uniqid();
+    $namaFileBAru .= '.';
+    $namaFileBAru .= $ekstensiGambar;
+    move_uploaded_file($tmpName, 'IPS8/' .  $namaFileBAru);
+    return $namaFileBAru;   
+    
+
+}
+
+//Menghapus data
+function hapus($nim){
+    global $conn;
+    //Query hapus data
+    mysqli_query($conn, "DELETE FROM siswa WHERE nim = $nim");
+    return mysqli_affected_rows($conn);
+}
+
+//Ubah data
+function edit($data){
+    global $conn;
+    //Ambil data dari tiap elemen pada form
+    $nim = htmlspecialchars($data["nim"]);
+    $nama = htmlspecialchars($data["nama"]);
+    $email = htmlspecialchars($data["email"]);
+    $kelas = htmlspecialchars($data["kelas"]);
+    $foto = htmlspecialchars($data["foto"]);
+
+    //Query insert data
+    $query = "UPDATE siswa SET nim = '$nim',
+                                nama = '$nama',
+                                email = '$email',
+                                kelas = '$kelas',
+                                foto = '$foto'
+                         WHERE nim = '$nim'; ";
+
+    mysqli_query($conn, $query);
+    //Kembalikan perubahan baris
+    return mysqli_affected_rows($conn);
+
+}
+
+//Searching data
+function cari($keyword) {
+    global $conn;
+    //Masukan query sql untuk melakukan pencarian data
+    $query = "SELECT * FROM siswa WHERE nama LIKE '%$keyword%' OR nim LIKE '%$keyword%' OR email LIKE '%$keyword%' OR kelas LIKE '%$keyword%'; ";
+    //Kembalikan query
+    return query($query);
+}
+
+?>
